@@ -294,6 +294,40 @@
   }
   .timeline-markers span:hover { color: rgba(255,255,255,0.9); }
   .timeline-markers span.active { color: #ffd700; }
+
+  /* 曲目选择器 */
+  .track-selector {
+    max-width: 760px;
+    margin: 0 auto 12px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  .track-btn {
+    padding: 5px 16px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.6);
+    border-radius: 14px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    backdrop-filter: blur(4px);
+  }
+  .track-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.9);
+  }
+  .track-btn.active {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.6);
+    color: #fff;
+  }
+  .track-btn.loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -326,9 +360,11 @@
   <div id="sectionLabel" class="section-label">第一段 · 向晚春风</div>
 
   <div class="player-bar">
-    <audio id="audio" preload="auto">
-      <source src="https://d.tmpfile.link/public/2026-09-05/ce4f722d-958b-40d3-bcf6-ee07b602fe32/new_bg.wav" type="audio/wav">
-    </audio>
+    <audio id="audio" preload="auto"></audio>
+    <div class="track-selector" id="trackSelector">
+      <button class="track-btn active" data-track="0">远方的寂静</button>
+      <button class="track-btn" data-track="1">安妮的仙境</button>
+    </div>
     <div class="controls">
       <button id="playBtn" class="play-btn" title="播放/暂停">
         <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -366,6 +402,13 @@
     { time: 62, img: 'https://d.tmpfile.link/public/2026-09-05/f6cc48d6-2914-4177-a296-4e0d7b4c7bf9/bg4.webp', thumb: 'https://d.tmpfile.link/public/2026-09-05/7f76226c-5474-4ca3-97fc-8a3ee0ef7d7e/bg4_thumb.webp', label: '第四段 · 哲人咏赞' },
     { time: 82, img: 'https://d.tmpfile.link/public/2026-09-05/99caf629-965c-4690-8bd6-0776371f1069/bg5.webp', thumb: 'https://d.tmpfile.link/public/2026-09-05/a003ae53-4224-4496-87bf-00c4a3032366/bg5_thumb.webp', label: '第五段 · 生命奔放' },
   ];
+
+  // ===== 曲目配置 =====
+  const tracks = [
+    { name: '远方的寂静', url: 'https://d.tmpfile.link/public/2026-09-05/65b0a205-3a12-45a4-9bf6-6e181462dad8/%E8%BF%9C%E6%96%B9%E7%9A%84%E5%AF%82%E9%9D%99.wav' },
+    { name: '安妮的仙境', url: 'https://d.tmpfile.link/public/2026-09-05/3ce05d24-38a7-4b23-9dcd-ae0a86cda615/%E5%AE%89%E5%A6%AE%E7%9A%84%E4%BB%99%E5%A2%83.wav' },
+  ];
+  let currentTrack = 0;
 
   const bgA = document.getElementById('bgA');
   const bgB = document.getElementById('bgB');
@@ -424,9 +467,9 @@
         updateProgress('音频加载完成');
         resolve();
       };
-      // 用 XHR 下载 MP3（2.45MB，快速），进度可靠，100% 下载后创建 blob URL
+      // 用 XHR 下载当前曲目，进度可靠，100% 下载后创建 blob URL
       const xhr = new XMLHttpRequest();
-      xhr.open('GET', 'https://d.tmpfile.link/public/2026-09-05/ce4f722d-958b-40d3-bcf6-ee07b602fe32/new_bg.wav', true);
+      xhr.open('GET', tracks[currentTrack].url, true);
       xhr.responseType = 'blob';
       xhr.onprogress = (e) => {
         if (e.lengthComputable) {
@@ -442,6 +485,7 @@
           finish();
         } else {
           // XHR 失败回退原生音频
+          audio.src = tracks[currentTrack].url;
           audio.addEventListener('canplaythrough', finish, { once: true });
           audio.load();
           setTimeout(finish, 15000);
@@ -449,6 +493,7 @@
       };
       xhr.onerror = () => {
         // 回退原生音频
+        audio.src = tracks[currentTrack].url;
         audio.addEventListener('canplaythrough', finish, { once: true });
         audio.load();
         setTimeout(finish, 15000);
@@ -579,8 +624,8 @@
     return m + ':' + (s < 10 ? '0' : '') + s;
   }
 
-  // WAV 文件头帧数不准，audio.duration 为 NaN，硬编码总时长
-  const AUDIO_DURATION = 110;
+  // 总时长：优先读取 audio.duration，WAV 头不准时回退到 110 秒
+  let AUDIO_DURATION = 110;
   durationEl.textContent = formatTime(AUDIO_DURATION);
 
   playBtn.addEventListener('click', () => {
@@ -591,7 +636,32 @@
   audio.addEventListener('pause', () => playBtn.classList.remove('playing'));
 
   audio.addEventListener('loadedmetadata', () => {
+    if (isFinite(audio.duration) && audio.duration > 0) {
+      AUDIO_DURATION = audio.duration;
+    }
     durationEl.textContent = formatTime(AUDIO_DURATION);
+  });
+
+  // ===== 曲目切换 =====
+  const trackBtns = document.querySelectorAll('.track-btn');
+  trackBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.track);
+      if (idx === currentTrack) return;
+      currentTrack = idx;
+      trackBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // 切换音频源
+      audio.pause();
+      audio.src = tracks[idx].url;
+      audio.load();
+      currentTimeEl.textContent = '0:00';
+      progressFill.style.width = '0%';
+      progressThumb.style.left = '0%';
+      currentScene = -1;
+      switchScene(0);
+      audio.play().catch(() => {});
+    });
   });
 
   audio.addEventListener('timeupdate', () => {
