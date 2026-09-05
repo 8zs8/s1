@@ -427,31 +427,38 @@
         updateProgress('音频加载完成');
         resolve();
       };
-      // 检查缓冲是否达到 100%
-      const checkBuffer = () => {
-        if (done) return;
-        if (audio.buffered.length > 0 && audio.duration && isFinite(audio.duration)) {
-          const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
-          const pct = Math.min(100, Math.round((bufferedEnd / audio.duration) * 100));
+      // 用 XHR 下载 MP3（2.45MB，快速），进度可靠，100% 下载后创建 blob URL
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', 'poem_bg_music_full.mp3', true);
+      xhr.responseType = 'blob';
+      xhr.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
           loadingStatus.textContent = '正在加载音频… ' + pct + '%';
-          if (pct >= 100) {
-            finish();
-          }
         }
       };
-      audio.addEventListener('progress', checkBuffer);
-      audio.addEventListener('loadedmetadata', checkBuffer);
-      // canplaythrough：浏览器估算可全程无缓冲播放，作为兜底放行
-      audio.addEventListener('canplaythrough', () => {
-        if (!done) {
-          checkBuffer();
-          // 再给 3 秒确认是否能到 100%，否则按 canplaythrough 放行
-          setTimeout(() => { if (!done) finish(); }, 3000);
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const blobUrl = URL.createObjectURL(xhr.response);
+          audio.src = blobUrl;
+          loadingStatus.textContent = '正在加载音频… 100%';
+          finish();
+        } else {
+          // XHR 失败回退原生音频
+          audio.addEventListener('canplaythrough', finish, { once: true });
+          audio.load();
+          setTimeout(finish, 15000);
         }
-      }, { once: true });
-      audio.load();
-      // 30 秒兜底，极端网络下也不卡死
-      setTimeout(finish, 30000);
+      };
+      xhr.onerror = () => {
+        // 回退原生音频
+        audio.addEventListener('canplaythrough', finish, { once: true });
+        audio.load();
+        setTimeout(finish, 15000);
+      };
+      xhr.send();
+      // 20 秒兜底
+      setTimeout(finish, 20000);
     });
   }
 
