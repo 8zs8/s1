@@ -9,7 +9,6 @@
 <link rel="preload" as="image" href="bg3.webp">
 <link rel="preload" as="image" href="bg4.webp">
 <link rel="preload" as="image" href="bg5.webp">
-<link rel="preload" as="image" href="bg6.webp">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, "Microsoft YaHei", sans-serif; }
@@ -324,11 +323,11 @@
     <div class="subtitle">穆旦 · 诗朗诵背景音乐画卷</div>
   </div>
 
-  <div id="sectionLabel" class="section-label">傍晚静景</div>
+  <div id="sectionLabel" class="section-label">第一段 · 向晚春风</div>
 
   <div class="player-bar">
     <audio id="audio" preload="auto">
-      <source src="poem_bg_music_full.wav" type="audio/wav">
+      <source src="https://d.tmpfile.link/public/2026-09-05/ce4f722d-958b-40d3-bcf6-ee07b602fe32/new_bg.wav" type="audio/wav">
     </audio>
     <div class="controls">
       <button id="playBtn" class="play-btn" title="播放/暂停">
@@ -342,19 +341,18 @@
           <div class="progress-thumb" id="progressThumb"></div>
         </div>
       </div>
-      <span id="duration" class="time-text">2:40</span>
+      <span id="duration" class="time-text">1:50</span>
       <div class="volume-control">
         <svg id="volumeIcon" class="volume-icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
         <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.01" value="1">
       </div>
     </div>
     <div class="timeline-markers" id="markers">
-      <span data-time="0" class="active">傍晚静景</span>
-      <span data-time="30">天地悠远</span>
-      <span data-time="57">感怀生命</span>
-      <span data-time="83">怀古沉静</span>
-      <span data-time="113">生命奔放</span>
-      <span data-time="148">复归平和</span>
+      <span data-time="0" class="active">第一段</span>
+      <span data-time="22">第二段</span>
+      <span data-time="44">第三段</span>
+      <span data-time="66">第四段</span>
+      <span data-time="88">第五段</span>
     </div>
   </div>
 </div>
@@ -362,12 +360,11 @@
 <script>
   // ===== 场景配置：高清图 + 低清占位图 =====
   const scenes = [
-    { time: 0,   img: 'bg1.webp', thumb: 'bg1_thumb.webp', label: '明亮开篇' },
-    { time: 18,  img: 'bg2.webp', thumb: 'bg2_thumb.webp', label: '愉悦舒展' },
-    { time: 38,  img: 'bg3.webp', thumb: 'bg3_thumb.webp', label: '温暖上扬' },
-    { time: 58,  img: 'bg4.webp', thumb: 'bg4_thumb.webp', label: '沉静过渡' },
-    { time: 75,  img: 'bg5.webp', thumb: 'bg5_thumb.webp', label: '激昂高潮' },
-    { time: 100, img: 'bg6.webp', thumb: 'bg6_thumb.webp', label: '温暖收束' },
+    { time: 0,  img: 'bg1.webp', thumb: 'bg1_thumb.webp', label: '第一段 · 向晚春风' },
+    { time: 22, img: 'bg2.webp', thumb: 'bg2_thumb.webp', label: '第二段 · 飞鸟流云' },
+    { time: 44, img: 'bg3.webp', thumb: 'bg3_thumb.webp', label: '第三段 · 生命勃发' },
+    { time: 66, img: 'bg4.webp', thumb: 'bg4_thumb.webp', label: '第四段 · 哲人咏赞' },
+    { time: 88, img: 'bg5.webp', thumb: 'bg5_thumb.webp', label: '第五段 · 生命奔放' },
   ];
 
   const bgA = document.getElementById('bgA');
@@ -429,7 +426,7 @@
       };
       // 用 XHR 下载 MP3（2.45MB，快速），进度可靠，100% 下载后创建 blob URL
       const xhr = new XMLHttpRequest();
-      xhr.open('GET', 'poem_bg_music_full.mp3', true);
+      xhr.open('GET', 'https://d.tmpfile.link/public/2026-09-05/ce4f722d-958b-40d3-bcf6-ee07b602fe32/new_bg.wav', true);
       xhr.responseType = 'blob';
       xhr.onprogress = (e) => {
         if (e.lengthComputable) {
