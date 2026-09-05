@@ -328,7 +328,7 @@
 
   <div class="player-bar">
     <audio id="audio" preload="auto">
-      <source src="poem_bg_music_full.mp3" type="audio/mpeg">
+      <source src="poem_bg_music_full.wav" type="audio/wav">
     </audio>
     <div class="controls">
       <button id="playBtn" class="play-btn" title="播放/暂停">
@@ -385,7 +385,7 @@
   let useA = true;
 
   // ===== 启动预加载 =====
-  // 策略：只等第一张图 + 音频可播放就进入播放器，其余图片后台继续加载
+  // 策略：等第一张图 + 音频 100% 缓冲完成才进入播放器，杜绝边播边加载卡顿
   let loadedCount = 0;
   const TOTAL_ITEMS = scenes.length * 2 + 1;
 
@@ -419,19 +419,39 @@
 
   function preloadAudio() {
     return new Promise((resolve) => {
-      loadingStatus.textContent = '正在加载音频…';
+      loadingStatus.textContent = '正在加载音频… 0%';
       let done = false;
       const finish = () => {
         if (done) return;
         done = true;
-        updateProgress('音频就绪');
+        updateProgress('音频加载完成');
         resolve();
       };
-      audio.addEventListener('canplay', finish, { once: true });
-      audio.addEventListener('loadeddata', finish, { once: true });
+      // 检查缓冲是否达到 100%
+      const checkBuffer = () => {
+        if (done) return;
+        if (audio.buffered.length > 0 && audio.duration && isFinite(audio.duration)) {
+          const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+          const pct = Math.min(100, Math.round((bufferedEnd / audio.duration) * 100));
+          loadingStatus.textContent = '正在加载音频… ' + pct + '%';
+          if (pct >= 100) {
+            finish();
+          }
+        }
+      };
+      audio.addEventListener('progress', checkBuffer);
+      audio.addEventListener('loadedmetadata', checkBuffer);
+      // canplaythrough：浏览器估算可全程无缓冲播放，作为兜底放行
+      audio.addEventListener('canplaythrough', () => {
+        if (!done) {
+          checkBuffer();
+          // 再给 3 秒确认是否能到 100%，否则按 canplaythrough 放行
+          setTimeout(() => { if (!done) finish(); }, 3000);
+        }
+      }, { once: true });
       audio.load();
-      // 3 秒超时兜底
-      setTimeout(finish, 3000);
+      // 30 秒兜底，极端网络下也不卡死
+      setTimeout(finish, 30000);
     });
   }
 
@@ -441,13 +461,13 @@
       preloadImage(s.thumb, '低清图 ' + (i+1) + '/6');
       preloadImage(s.img, '高清图 ' + (i+1) + '/6');
     });
-    // 只等第一张高清图 + 音频，即可进入播放器
+    // 等第一张高清图 + 音频 100% 缓冲完成，才进入播放器
     const firstImg = preloadImage(scenes[0].img, '首图加载完成');
     const audioReady = preloadAudio();
     await Promise.all([firstImg, audioReady]);
     startPlayer();
-    // 全局兜底：8 秒后无论如何都进入（防止极端情况卡死）
-    setTimeout(startPlayer, 8000);
+    // 全局兜底：35 秒后无论如何都进入
+    setTimeout(startPlayer, 35000);
   }
 
   let playerStarted = false;
